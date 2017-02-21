@@ -1,0 +1,246 @@
+' This program is released under the WTFPL 2.0. See COPYING for more details
+'
+'
+' Shel_read is used to get the parameters that executed the program
+' the next series of instructions are used to get the directory variables
+' ...................................................
+'
+~SHEL_READ(cmd$,tail_str$)
+tail$=RIGHT$(tail_str$,(LEN(tail_str$)-1))
+filelength%=RINSTR(tail$,"\")
+length%=LEN(tail$)-filelength%
+filename$=RIGHT$(tail$,length%)
+progsize%=RINSTR(cmd$,"\")
+progdir$=LEFT$(cmd$,progsize%)
+' get the file extension
+ext$=RIGHT$(tail$,3)
+' folder$ is the name and location of the folder to be created
+size%=LEN(tail$)-4
+folderfull$=LEFT$(tail$,size%)
+lsize%=RINSTR(folderfull$,"\")
+mysize%=LEN(folderfull$)-lsize%
+folder$=RIGHT$(folderfull$,mysize%)+CHR$(0)
+' this set gives us the current directory
+dsize%=RINSTR(tail$,"\")
+directory$=LEFT$(tail$,dsize%)+CHR$(0)
+CHDIR directory$
+' this will create an alert box so the user can choose what to do
+text$="QUICK EXTRACT 0.5 by ChrisTOS|Released under WTFPL version 2|Extract in current dir|or create a new one?"
+button$="New|Cur|Quit"
+ALERT 2,text$,1,button$,choice
+IF choice=3
+  END
+ENDIF
+' here we check the extension to define what type of packing method was used
+' and proceed to the relative unpacking procedure
+IF ext$="zip" OR ext$="ZIP"
+  @unzip
+ENDIF
+IF ext$="rar" OR ext$="RAR"
+  @unrar
+ENDIF
+IF ext$="lzh" OR ext$="LZH" OR ext$="lha" OR ext$="LHA"
+  @unlzh
+ENDIF
+IF ext$="zoo" OR ext$="ZOO"
+  @unzoo
+ENDIF
+IF ext$="tar" OR ext$="TAR"
+  @untar
+ENDIF
+IF ext$=".gz" OR ext$=".GZ"
+  extmore$=RIGHT$(tail$,6)
+  IF extmore$="tar.gz" OR extmore$="TAR.GZ"
+    @untargz
+  ELSE
+    @gunzip
+  ENDIF
+ENDIF
+IF ext$="tgz" OR ext$="TGZ"
+  @untargz
+ENDIF
+IF ext$="bz2" OR ext$="BZ2"
+  extmore$=RIGHT$(tail$,7)
+  IF extmore$="tar.bz2" OR extmore$="TAR.BZ2"
+    @untarbz2
+  ELSE
+    @bunzip2
+  ENDIF
+ENDIF
+IF ext$="tbz" OR ext$="TBZ"
+  @untarbz2
+ENDIF
+END
+> PROCEDURE project_settings
+  ' WARNING: The contents of this procedure should not be edited!
+  ' INFO "GFA-Basic Editor v1.51          "
+  ' DATE "03/13/2012"
+  ' TIME "13:29:16"
+  ' LIB$ "GBE Lib   "
+  ' LIB# $3
+  ' $CMD %00000000000000100000000000000001
+  ' $RAM $0001F400
+  ' FLGS %00010111
+  ' _SYM $0
+  ' .EXT "prg"
+  ' OBJ0 "                                "
+  ' OBJ1 "                                "
+  ' OBJ2 "                                "
+  ' OBJ3 "                                "
+  ' OBJ4 "                                "
+  ' OBJ5 "                                "
+  ' CRSR $0000001B
+  ' BLKS $FFFFFFFF
+  ' BLKE $FFFFFFFF
+  ' MRK0 $FFFFFFFF
+  ' MRK1 $FFFFFFFF
+  ' MRK2 $FFFFFFFF
+  ' MRK3 $FFFFFFFF
+  ' MRK4 $FFFFFFFF
+  ' MRK5 $FFFFFFFF
+  ' MRK6 $00000000
+  ' MRK7 $00000012
+  ' MRK8 $FFFFFFFF
+  ' MRK9 $0000001B
+  ' FIND '00                                                            '
+  ' RPLC '00                                                            '
+  ' FRH0 '00                                                            '
+  ' FRH1 '00                                                            '
+  ' FRH2 '00                                                            '
+  ' FRH3 '00                                                            '
+  ' FRH4 '00                                                            '
+  ' FRH5 '00                                                            '
+  ' FRH6 '00                                                            '
+  ' FRH7 '00                                                            '
+  ' FRH8 '00                                                            '
+  ' FRH9 '00                                                            '
+  ' PST0 '00                                                                                                                                '
+  ' PST1 '00                                                                                                                                '
+  ' UND0 '00                                                                                                                                '
+  ' UND1 '00                                                                                                                                '
+  ' CMD$ '00                                                                 '
+  ' ENV$ '00                                                                 '
+RETURN
+PROCEDURE unzip
+  ' this procedure calls the extracting programs with the appropriate parameters
+  ' as choosen at the alert box
+  ' RESERVE 124000
+  cmdl$=filename$+" -d "+folder$+CHR$(0)
+  cmdl2$=filename$+CHR$(0)
+  IF choice=1
+    EXEC 0,progdir$+"arc\unzip.ttp",CHR$(LEN(cmdl$))+cmdl$,""
+  ENDIF
+  IF choice=2
+    EXEC 0,progdir$+"arc\unzip.ttp",CHR$(LEN(cmdl2$))+cmdl2$,""
+  ENDIF
+  ' I should probably find a way to check whether the program completed succesfuly
+  ' and not just write it
+  ALERT 1,"Operation completed",1,"OK",ending
+  END
+  ' RESERVE
+RETURN
+PROCEDURE unrar
+  ' RESERVE 400000
+  cmdl$="x "+filename$+" "+folder$+CHR$(0)
+  cmdl2$="x "+filename$+CHR$(0)
+  IF choice=1
+    EXEC 0,progdir$+"arc\unrar.ttp",CHR$(LEN(cmdl$))+cmdl$,""
+  ELSE
+    EXEC 0,progdir$+"arc\unrar.ttp",CHR$(LEN(cmdl2$))+cmdl2$,""
+  ENDIF
+  ALERT 1,"Operation completed",1,"OK",ending
+  ' RESERVE
+RETURN
+PROCEDURE unlzh
+  ' RESERVE 200000
+  cmdl$=filename$+" "+folder$+CHR$(0)
+  cmdl2$="x "+"/x- "+filename$+CHR$(0)
+  IF choice=1
+    EXEC 0,progdir$+"arc\lharceng.ttp",CHR$(LEN(cmdl$))+cmdl$,""
+  ELSE
+    EXEC 0,progdir$+"arc\lharceng.ttp",CHR$(LEN(cmdl2$))+cmdl2$,""
+  ENDIF
+  ALERT 1,"Operation completed",1,"OK",ending
+  ' RESERVE
+RETURN
+PROCEDURE unzoo
+  ' RESERVE 120000
+  cmdl$="x// "+filename$+CHR$(0)
+  cmdl2$="x/ "+filename$+CHR$(0)
+  IF choice=1
+    EXEC 0,progdir$+"arc\zoo.ttp",CHR$(LEN(cmdl$))+cmdl$,""
+  ELSE
+    EXEC 0,progdir$+"arc\zoo.ttp",CHR$(LEN(cmdl2$))+cmdl2$,""
+  ENDIF
+  ALERT 1,"Operation Completed",1,"OK",ending
+  ' RESERVE
+RETURN
+PROCEDURE untar
+  ' RESERVE 512000
+  cmdl$=" -xvf "+filename$+" -C"+folder$+CHR$(0)
+  cmdl2$=" -xvf "+filename$+CHR$(0)
+  IF choice=1
+    MKDIR folder$
+    EXEC 0,progdir$+"arc\tar.ttp",CHR$(LEN(cmdl$))+cmdl$,""
+  ELSE
+    EXEC 0,progdir$+"arc\tar.ttp",CHR$(LEN(cmdl2$))+cmdl2$,""
+  ENDIF
+  ALERT 1,"Operation completed",1,"OK",ending
+  ' RESERVE
+RETURN
+PROCEDURE untargz
+  @gunzip
+  filetar$=LEFT$(filename$,LEN(filename$)-3)
+  foldertar$=LEFT$(folder$,LEN(folder$)-4)
+  cmdl$=" -xvf "+filetar$+" -C"+foldertar$+CHR$(0)
+  cmdl2$=" -xvf "+filetar$+CHR$(0)
+  IF choice=1
+    IF ext$="tgz" OR ext$="TGZ"
+      ' **************special provisions for tgz**************
+      MKDIR folder$
+      filetar$=filetar$+"tar"
+      cmdl$=" -xvf "+filetar$+" -C"+folder$+CHR$(0)
+      cmdl2$=" -xvf "+filetar$+CHR$(0)
+      ' ********end of ugly hack***********
+    ELSE
+      MKDIR foldertar$
+    ENDIF
+    EXEC 0,progdir$+"arc\tar.ttp",CHR$(LEN(cmdl$))+cmdl$,""
+  ELSE
+    EXEC 0,progdir$+"arc\tar.ttp",CHR$(LEN(cmdl2$))+cmdl2$,""
+  ENDIF
+  ALERT 1,"Operation completed",1,"OK",ending
+  ' RESERVE
+RETURN
+PROCEDURE gunzip
+  '  RESERVE 512000
+  cmdl$=" -d "+filename$+CHR$(0)
+  EXEC 0,progdir$+"arc\gunzip.ttp",CHR$(LEN(cmdl$))+cmdl$,""
+  ALERT 1,"Operation completed",1,"OK",ending
+  ' RESERVE
+RETURN
+PROCEDURE untarbz2
+  @bunzip2
+  filetar$=LEFT$(filename$,LEN(filename$)-4)
+  foldertar$=LEFT$(folder$,LEN(folder$)-5)
+  PRINT filetar$
+  PRINT foldertar$
+  ' RESERVE 512000
+  cmdl$=" -xvf "+filetar$+" -C "+foldertar$+CHR$(0)
+  cmdl2$=" -xvf "+filetar$+CHR$(0)
+  IF choice=1
+    MKDIR foldertar$
+    EXEC 0,progdir$+"arc\tar.ttp",CHR$(LEN(cmdl$))+cmdl$,""
+  ELSE
+    EXEC 0,progdir$+"arc\tar.ttp",CHR$(LEN(cmdl2$))+cmdl2$,""
+  ENDIF
+  ALERT 1,"Operation completed",1,"OK",ending
+  ' RESERVE
+RETURN
+PROCEDURE bunzip2
+  '  RESERVE 512000
+  cmdl$=" -d "+filename$+CHR$(0)
+  EXEC 0,progdir$+"arc\bunzip2.ttp",CHR$(LEN(cmdl$))+cmdl$,""
+  ALERT 1,"Operation completed",1,"OK",ending
+  ' RESERVE
+RETURN

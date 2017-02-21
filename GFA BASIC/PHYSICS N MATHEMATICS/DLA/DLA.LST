@@ -1,0 +1,98 @@
+DIM screen|(320,200)
+DIM precalc&(4000,1)
+th=90
+' Fill array screen with initial values
+FOR i=0 TO 179 STEP 0.5
+  x1=160+COSQ(th+i)*10
+  y1=100+SINQ(th+i)*10
+  x2=160-COSQ(th+i)*10
+  y2=y1
+  FOR j=x1 TO x2
+    screen|(j,y1)=1
+  NEXT j
+NEXT i
+counter=1
+screen_address%=XBIOS(2)
+' Load image
+DIM buffer|(32066-1)
+buf_address%=V:buffer|(0)
+BLOAD "stot8.pi1",buf_address%
+~XBIOS(6,L:buf_address%+2)
+RC_COPY buf_address%+34,0,0,320,200 TO screen_address%,0,0
+feed
+fractal
+saving
+PROCEDURE feed
+  ' place a particle in a random position on  the periphery of a circle
+  ' of radius r
+  fi=RAND(360)
+  r=15+INT((counter/3.14)^0.63)
+  x=INT(160+r*COSQ(fi))
+  y=INT(100+r*SINQ(fi))
+  IF screen|(x,y)=1 THEN
+    GOSUB feed
+  ENDIF
+  IF screen|(x-1,y-1)=1 OR screen|(x-1,y)=1 OR screen|(x-1,y+1)=1 OR screen|(x,y-1)=1 OR screen|(x,y+1)=1 OR screen|(x+1,y-1)=1 OR screen|(x+1,y)=1 OR screen|(x+1,y+1)=1 THEN
+    screen|(x,y)=1
+    GOSUB feed
+  ENDIF
+RETURN
+PROCEDURE fractal
+  ' This is the DLA algorithm. Particle follows brownian motion. In each step
+  ' a check is being performed for the existance of a neigbouring particle.
+  ' If such a particle exists then the particle sticks and a new one is being
+  ' released
+  DO
+    REM  theta=RAND(360)
+    n%=RANDOM(3)-1
+    x=x+n%
+    IF x<160-r THEN
+	x=165-r
+    ENDIF
+    IF x>160+r THEN
+	x=155+r
+    ENDIF
+    IF screen|(x,y)=1 THEN
+	GOSUB fractal
+    ENDIF
+    IF screen|(x-1,y-1)=1 OR screen|(x-1,y)=1 OR screen|(x-1,y+1)=1 OR screen|(x,y-1)=1 OR screen|(x,y+1)=1 OR screen|(x+1,y-1)=1 OR screen|(x+1,y)=1 OR screen|(x+1,y+1)=1 THEN
+	screen|(x,y)=1
+	PLOT x,y
+	insert=1
+	IF insert=1 THEN
+	  counter=counter+1
+	  precalc&(counter,0)=x
+	  precalc&(counter,1)=y
+	  GOSUB feed
+	ENDIF
+    ENDIF
+    REM theta=RAND(360)
+    m%=RANDOM(3)-1
+    y=y+m%
+    IF y<100-r THEN
+	y=105-r
+    ENDIF
+    IF y>100+r THEN
+	y=95+r
+    ENDIF
+    IF screen|(x-1,y-1)=1 OR screen|(x-1,y)=1 OR screen|(x-1,y+1)=1 OR screen|(x,y-1)=1 OR screen|(x,y+1)=1 OR screen|(x+1,y-1)=1 OR screen|(x+1,y)=1 OR screen|(x+1,y+1)=1 THEN
+	screen|(x,y)=1
+	PLOT x,y
+	insert=1
+	IF insert=1 THEN
+	  counter=counter+1
+	  precalc&(counter,0)=x
+	  precalc&(counter,1)=y
+	ENDIF
+    ENDIF
+    ' PRINT AT(1,1);x,y,counter,r
+    COLOR y/10
+    IF counter>3500
+	GOSUB saving
+    ENDIF
+  LOOP
+RETURN
+PROCEDURE saving
+  BSAVE "precalc.chr",V:precalc&(0,0),4000*2*2
+  END
+RETURN

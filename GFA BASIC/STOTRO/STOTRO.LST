@@ -1,0 +1,342 @@
+' SNDH Replayer for GFA
+' Original by Swe/YesCrew
+' Modified version by gwEm
+'
+CLS
+OPTION BASE 0
+DIM r%(16)
+INLINE sndhplay%,186
+INLINE sndhtune%,18906
+DEFWRD "A-z"
+'
+' Address of the zik
+r%(14)=sndhtune%
+'
+' Frequency
+'
+r%(7)=50
+'
+super%=GEMDOS(&H20,L:0)
+RCALL sndhplay%+28,r%()
+~GEMDOS(&H20,L:super%)
+'
+' Align buffer to 256 byte boundary just to be sure :)
+'
+DIM buffer|(288256-1)
+DIM x%(8032)
+buf_address%=(V:buffer|(0)+256) AND &HFFFFFF00
+'
+' do mask
+screen_address%=XBIOS(2)
+FOR i=0 TO 15
+  VSETCOLOR i,0,0,0
+NEXT i
+COLOR 5
+CIRCLE 14,15,15
+COLOR 2
+CIRCLE 15,15,15
+FOR y=0 TO 31
+  FOR x=0 TO 1
+    adr%=screen_address%+x*8+y*160
+    mask%=NOT (DPEEK(adr%) OR DPEEK(adr%+2) OR DPEEK(adr%+4) OR DPEEK(adr%+6))
+    DPOKE adr%+16,mask%
+    DPOKE adr%+18,mask%
+    DPOKE adr%+20,mask%
+    DPOKE adr%+22,mask%
+  NEXT x
+NEXT y
+'
+' BLOAD "data\stot7.pi1",buf_address%
+OPEN "i",#1,"data\stot7.pi1"
+BGET #1,buf_address%,34
+~XBIOS(6,L:buf_address%+2)
+VSYNC
+BGET #1,buf_address%,32000
+CLOSE #1
+~XBIOS(5,L:buf_address%,L:buf_address%,-1)
+'
+OPEN "i",#1,"data\stot8.pi1"
+SEEK #1,34
+BGET #1,buf_address%+32000,32000
+CLOSE #1
+'
+OPEN "i",#1,"data\chess.pi1"
+SEEK #1,34
+BGET #1,buf_address%+32000+32000,32000
+CLOSE #1
+'
+OPEN "i",#1,"data\hello.pi1"
+SEEK #1,34
+BGET #1,buf_address%+64000+32000,32000
+CLOSE #1
+'
+FOR i=1 TO 200
+  VSYNC
+NEXT i
+FOR i=0 TO 200
+  sc%=buf_address%+i*160
+  SPOKE &HFFFF8201,SHR(sc%,16)
+  SPOKE &HFFFF8203,SHR(sc%,8) AND 255
+  SPOKE &HFFFF820D,sc% AND 255
+  VSYNC
+NEXT i
+~XBIOS(5,L:sc%,L:sc%,-1)
+DIM precalc(4000,1)
+BLOAD "data\fuzzy.chr",V:precalc(0,0)
+FOR i=1 TO 3990
+  chroma=precalc(i,1)/10
+  IF chroma=16
+    chroma=15
+  ENDIF
+  COLOR chroma
+  PLOT precalc(i,0),precalc(i,1)
+NEXT i
+FOR i=0 TO 200
+  sc%=buf_address%+32000+i*160
+  SPOKE &HFFFF8201,SHR(sc%,16)
+  SPOKE &HFFFF8203,SHR(sc%,8) AND 255
+  SPOKE &HFFFF820D,sc% AND 255
+  VSYNC
+NEXT i
+~XBIOS(5,L:sc%,L:sc%,-1)
+~XBIOS(5,L:buf_address%+64000,L:buf_address%+64000,-1)
+FOR i=1 TO 10000
+NEXT i
+r#=90
+i=0
+DO
+  VSYNC
+  INC i
+  r#=r#-0.1
+  x%=159+r#*COSQ(i)
+  y%=79+r#*SINQ(i)
+  RC_COPY screen_address%,32,0,32,32 TO buf_address%+64000,x%,y%,1
+  RC_COPY screen_address%,0,0,32,32 TO buf_address%+64000,x%,y%,7
+  EXIT IF r#<0
+LOOP
+FOR i=0 TO 200
+  sc%=buf_address%+64000+i*160
+  SPOKE &HFFFF8201,SHR(sc%,16)
+  SPOKE &HFFFF8203,SHR(sc%,8) AND 255
+  SPOKE &HFFFF820D,sc% AND 255
+  VSYNC
+NEXT i
+~XBIOS(5,L:sc%,L:sc%,-1)
+~XBIOS(5,L:buf_address%+96000,L:buf_address%+96000,-1)
+'
+' plasma
+'
+FOR i=1 TO 5
+  BLOAD "data\pic"+STR$(i)+".pic",buf_address%+(i*32000+96000)
+NEXT i
+DO
+  INC k
+  FOR i=1 TO 5
+    ~XBIOS(5,L:buf_address%+96000+(i*32000),L:buf_address%+(i*32000+96000),-1)
+    FOR m=1 TO 15
+	FOR j=0 TO 15
+	  VSETCOLOR j,0,0,(j+m) MOD 16
+	NEXT j
+	VSYNC
+    NEXT m
+  NEXT i
+  EXIT IF k=10
+  INC k
+  FOR i=4 TO 1 STEP -1
+    ~XBIOS(5,L:buf_address%+96000+(i*32000),L:buf_address%+(i*32000+96000),-1)
+    FOR m=1 TO 15
+	VSYNC
+	FOR j=0 TO 15
+	  VSETCOLOR j,0,0,(j+m) MOD 16
+	NEXT j
+    NEXT m
+  NEXT i
+  EXIT IF k=10
+LOOP
+'
+' Scroller using blitter
+' Coded by GGN/Paradize in 06-08-2006
+' Dedicated to those that still use GFA :)
+'
+super%=GEMDOS(&H20,L:0)
+s%=V:x%(0)
+ARRAYFILL buffer|(),0
+scr1%=buf_address%
+scr2%=buf_address%+32000
+BLOAD "DATA\goldfont.pi1",s%
+~XBIOS(6,L:s%+2)
+ADD s%,34
+'
+s_x_inc%=&HFF8A20
+s_y_inc%=&HFF8A22
+s_hw%=&HFF8A24
+s_lw%=&HFF8A26
+end_1%=&HFF8A28
+end_2%=&HFF8A2A
+end_3%=&HFF8A2C
+d_x_inc%=&HFF8A2E
+d_y_inc%=&HFF8A30
+d_hw%=&HFF8A32
+d_lw%=&HFF8A34
+x_cnt%=&HFF8A36
+y_cnt%=&HFF8A38
+hop%=&HFF8A3A			  !Byte
+op%=&HFF8A3B			   ! >>
+skew%=&HFF8A3D			 ! >>
+blit%=&HFF8A3C
+'
+' Construct an array of pointers that contain the letter start addresses
+' (try to understand how that happens :P )
+'
+DIM lt_addr%(90)
+off%=0
+FOR i=32 TO 90
+  lt_addr%(i)=s%+off%-8
+  off%=off%+16
+  IF off%/160=off%\160	    !hehehehe
+    ADD off%,31*160
+  ENDIF
+NEXT i
+scroll_amount=4
+scroll_offset=0
+scroller_pos=1
+right_endmask=SHR&(&HFFFF,16-scroll_amount)
+text$=" THANKS FOR WATCHING THIS INTRO! CREDITS ARE: CODE: CHRISTOS, STOT LOGO: SH3-RG, MUSIC: 505, OTHER GRAPHICS: CHRISTOS: MUSIC REPLAY ROUTINE: GWEM-PHF, THIS SCROLLER: GGN-D-BUG. SO WHY DID YOU WATCH IT?"
+text$=text$+" THE ST OFFLINE TOURNAMENT TEAM WOULD LIKE TO ANNOUNCE OUR PRESENCE AT OUTLINE 08 WHERE WE WILL HOLD A SPEEDBALL TOURNAMENT (ON ST). OUTLINE 08 WILL BE HELD"
+text$=text$+" IN BRAAMT NL BETWEEN MAY 1 AND 4 2008. IT IS A MULTIPLATFORM PARTY AND GUARANTEED TO BE A LOT OF FUN! SO BE THERE! MANY THANKS GO TO GGN (THANKS MAN :)) , AND CYRANO JONES AND SHOWADDYWADDY FOR THEIR HELP WITH THIS INTRO."
+text$=text$+"ALSO THANKS TO SH3 AND 505 FOR LENDING US THEIR TALENT AND TO THE #ATARISCNE PEOPLE. STOT ARE CHRISTOS AND KRADD. GREETINGS GO TO JA ------WRAP----- "
+wrap=LEN(text$)
+l_addr%=lt_addr%(ASC(MID$(text$,0,1)))  !Initialise this
+shift=11
+'
+pixels=50
+DIM offst%(pixels,1)
+HIDEM
+FOR i=0 TO pixels
+  y=RANDOM(160)
+  x=RANDOM(320)
+  col=RAND(3)
+  offst%(i,0)=y*160+(x\16)*8+i*2
+  offst%(i,1)=SHL(1,15-(x AND 15))
+NEXT i
+DO
+  '  CARD{&HFF8240}=&HFFF
+  VSYNC
+  ' CARD{&HFF8240}=0
+  ~XBIOS(5,L:scr2%,L:scr2%,-1)
+  '
+  ' Scroll the screen
+  '
+  CARD{x_cnt%}=20	 !20 words/line
+  CARD{s_x_inc%}=8	!skip 8 bytes to get to next src word
+  CARD{s_y_inc%}=8	! ..  .. ..   ..  .. ..  ..  ..  line
+  CARD{d_x_inc%}=8	! ..  .. ..   ..  .. ..  ..  dst word
+  CARD{d_y_inc%}=8	! ..  .. ..   ..  .. ..  ..  ..  line
+  CARD{end_1%}=&HFFFF   !left endmask (not used)
+  CARD{end_2%}=&HFFFF   !middle ..    ( ..  .. )
+  CARD{end_3%}=&HFFFF   !right  ..    ( ..  .. )
+  BYTE{skew%}=-scroll_amount
+  BYTE{hop%}=2	     !HOG mode
+  BYTE{op%}=3		!copy all src pixels
+  '  CARD{&HFF8240}=&H500
+  LONG{s_hw%}=scr1%+26880	!src address
+  LONG{d_hw%}=scr2%+26880	!dst address
+  CARD{y_cnt%}=32		 !32 lines to blit
+  BYTE{blit%}=192		  !go for it! (freezes cpu :)
+  LONG{s_hw%}=scr1%+26880+2	!src address
+  LONG{d_hw%}=scr2%+26880+2	!dst address
+  CARD{y_cnt%}=32		 !32 lines to blit
+  BYTE{blit%}=192		  !go for it! (freezes cpu :)
+  LONG{s_hw%}=scr1%+26880+4	!src address
+  LONG{d_hw%}=scr2%+26880+4	!dst address
+  CARD{y_cnt%}=32		 !32 lines to blit
+  BYTE{blit%}=192		  !go for it! (freezes cpu :)
+  LONG{s_hw%}=scr1%+26880+6	!src address
+  LONG{d_hw%}=scr2%+26880+6	!dst address
+  CARD{y_cnt%}=32		 !32 lines to blit
+  BYTE{blit%}=192		  !go for it! (freezes cpu :)
+  '  CARD{&HFF8240}=&H3
+  '
+  ' STARS
+  FOR i=0 TO pixels
+    off=offst%(i,0)
+    val%=offst%(i,1)
+    IF val%=&H8000
+	CARD{ADD(scr1%,off)}=0
+	CARD{ADD(scr2%,off)}=0		!APARADEKTO!!!!!!
+	CARD{SUB(ADD(scr1%,off),8)}=1
+	CARD{SUB(ADD(scr2%,off),8)}=1     !APARADEKTO!!!!!!
+	SUB off,8
+	IF off<=0
+	  off=ADD(off,26872)
+	ENDIF
+	offst%(i,0)=off
+	offst%(i,1)=1
+    ELSE
+	val%=ADD(val%,val%)
+	CARD{ADD(scr1%,off)}=val%
+	CARD{ADD(scr2%,off)}=val%
+	offst%(i,1)=val%
+    ENDIF
+  NEXT i
+  '
+  ' Blit portion of character
+  '
+  '  shift&=0 !15-(scroll_offset& AND 15)
+  CARD{x_cnt%}=2	  !3 word/line (2 words + 1 for shifting)
+  CARD{s_x_inc%}=8	!skip bytes to get to next src word
+  CARD{s_y_inc%}=152    ! ..  ..   ..  .. ..  ..  ..  line
+  CARD{d_x_inc%}=8	! ..  ..   ..  .. ..  ..  dst word
+  CARD{d_y_inc%}=152    ! ..  ..   ..  .. ..  ..  ..  line
+  CARD{end_1%}=&H0	!left endmask (unused)
+  CARD{end_2%}=&H0	!middle ..    (unused)
+  CARD{end_3%}=right_endmask	!right  ..    (
+  BYTE{skew%}=shift
+  BYTE{hop%}=2	     !HOG mode
+  BYTE{op%}=3		!copy all src pixels
+  '  CARD{&HFF8240}=&H60
+  LONG{s_hw%}=l_addr%	 !src address
+  LONG{d_hw%}=scr2%+27024	 !dst address
+  CARD{y_cnt%}=32		 !32 lines to blit
+  BYTE{blit%}=192		  !go for it! (freezes cpu :)
+  LONG{s_hw%}=l_addr%+2	 !src address
+  LONG{d_hw%}=scr2%+27024+2	 !dst address
+  CARD{y_cnt%}=32		 !32 lines to blit
+  BYTE{blit%}=192		  !go for it! (freezes cpu :)
+  LONG{s_hw%}=l_addr%+4	 !src address
+  LONG{d_hw%}=scr2%+27024+4	 !dst address
+  CARD{y_cnt%}=32		 !32 lines to blit
+  BYTE{blit%}=192		  !go for it! (freezes cpu :)
+  LONG{s_hw%}=l_addr%+6	 !src address
+  LONG{d_hw%}=scr2%+27024+6	 !dst address
+  CARD{y_cnt%}=32		 !32 lines to blit
+  BYTE{blit%}=192		  !go for it! (freezes cpu :)
+  SUB shift,scroll_amount
+  ' CARD{&HFF8240}=&H424
+  '
+  ' Character logic
+  '
+  ADD scroll_offset,scroll_amount
+  IF scroll_offset=32
+    scroll_offset=0		!get new character
+    shift=16-scroll_amount
+    INC scroller_pos
+    IF scroller_pos=wrap	!oops, need to wrap!
+	scroller_pos=1
+    ENDIF
+    l_addr%=lt_addr%(ASC(MID$(text$,scroller_pos,1)))
+  ENDIF
+  IF scroll_offset=16
+    ADD l_addr%,8		   !point to 2nd chunk
+    shift=16-scroll_amount
+  ENDIF
+  SWAP scr1%,scr2%
+  '  CARD{&HFF8240}=&H422
+LOOP UNTIL INKEY$<>""
+~GEMDOS(&H20,L:super%)
+~XBIOS(5,L:screen_address%,L:screen_address%,-1)
+super%=GEMDOS(&H20,L:0)
+RCALL sndhplay%+28+4,r%()
+~GEMDOS(&H20,L:super%)
+CLS
+ 

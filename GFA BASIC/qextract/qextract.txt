@@ -1,0 +1,70 @@
+Quick Extract is a small tool designed to call unpacker programs directly 
+from the desktop. Qextract is free software and released under the WTFPL 
+version 2. 
+
+Most programs of this type are ttp programs that require the passing of 
+parameters from a command line. This program is designed to bypass this step
+in a way that a double click from the desktop will pass all the necessary
+parameters to that application. That way with a simple interface the user
+can very quickly unpack a zip, rar, lzh, lha and zoo file as well as tar
+and gzip archives.  
+
+INSTALLATION: The installation is done via the install application option of
+the desktop. You copy the program and the arc folder anywhere in your hard
+disk (it might work with floppies too haven't tested nor do I plan too,
+buy a hard disk). Let's say you copy it in C:\TOOLS\QEXTRACT. You select
+QEXTRACT.PRG and you choose "Install application" in the desktop (Set
+application in Teradesk). There is an option to assign document type. Select
+zip for that and save desktop. Now open Newdesk.inf or desktop.inf with a 
+text editor, find the string where this is set and copy it below. Now change
+zip to rar, lzh, lha, zoo respectively so that you have 5 lines. Save and 
+exit. Reload the desktop and the application is installed. Double clicking
+on any archived file will bring an alert with 3 options.
+
+New: This option will create a new folder named as your filename minus the
+extension and all files will be extracted there. 
+
+Cur: This will extract the files in the current directory. 
+
+Quit: Pretty obvious. 
+
+Once finished you'll get an operation completed message. However the program
+doesn't check if it has been succesful. There should be error messages from
+the unarchivers though. 
+
+What else? This program is released under the WTFPL version 2 and I provide
+NO WARRANTY whatsoever. See COPYING for more detail.
+
+Bugs and problems: This program uses the Pexec() function and as such it 
+has the limitation that you can't really use too large strings. Therefore
+if the filename and the extracting folder amount to more than 115 chars it
+will fail. There is a workaround for that, but I couldn't figure it out. It's
+on the todo list though. 
+
+-Zoo files are also a bitch. Since the zoo command line is beyond my 
+cognitive abilities zoo, files will be extracted at the current directory
+only. If someone wants to help please do so. 
+
+GZ files are always extracted in the current folder. TAR files on the 
+other hand can be extracted to either the current folder or a new one but
+since tar files might make absolute references user discretion is required.
+tar.gz files are handled in one go since version 0.4. 
+
+BZ2 files are supported since version 0.5. The shortened version tbz isn't and 
+unless there is demand it won't be. Basically you need to copy the tgz code
+and change it just a bit.Everything else is like tar.gz.
+
+CHMOD issues. If you install this program on a mint partition you might need
+to change the program flags on all programs. 
+
+Other notes. For version 0.5 some nasty bugs have been fixed which surprisinly
+noone noticed. It makes sense because these are not issues you normally encounter
+or when you do you don't notice but still...  
+
+Credits:
+Code and idea: ChrisTOS (or ChrisMiNT if I am on the falcon)
+unrar.ttp compiled by GGN
+Tester group: GGN, SHW, PeP, Beetle, Lonny Purcell
+Coding tips and bug tracking: Lonny Purcell, GGN
+This program was coded with GBE: 
+http://www.bright.net/~gfabasic/html/gbe.htm
